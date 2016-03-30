@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"sync"
 )
 
 type NPMPackageFile struct {
@@ -40,14 +41,23 @@ type Row struct {
 func main() {
 	outputLocation := os.Args[1]
 	packageNameRoot := os.Args[2]
-	author := os.Args[3]
+	version := os.Args[3]
+	author := os.Args[4]
+
+	if len(os.Args) < 4 {
+		fmt.Println("Invalid arguments. npm-gen-all <output root> <package name base> <version #> <author name>")
+		return
+	}
 
 	fmt.Println("Downloading NPM package list. This may take a while....")
 
-	createNPMPackages(outputLocation, packageNameRoot, author, "4.2.1", "A package that gets all packages.", "WTFPL")
+	createNPMPackages(outputLocation, packageNameRoot, author, version, "A package that gets all packages.", "WTFPL")
 }
 
 func createNPMPackages(location, packageName, author, version, description, license string) {
+	jobs := make(chan string, 100)
+	// go publishNPM(jobs)
+
 	resp, err := http.Get("https://skimdb.npmjs.com/registry/_all_docs/")
 	if err != nil {
 		panic(err)
@@ -74,18 +84,26 @@ func createNPMPackages(location, packageName, author, version, description, lice
 	chunks := slicer(packagesJSON.Rows, 1000)
 	fmt.Println(len(chunks))
 
+	var wg sync.WaitGroup
+
 	for i, chunk := range chunks {
-		name := packageName + "-" + strconv.Itoa(i)
-		exportNPMPackage(chunk, location, name, description, version, author, license)
+		wg.Add(1)
+		go func(i int, packageName, location, description, version, author, license string, chunk *[]interface{}, jobs chan<- string) {
+			defer wg.Done()
+			name := packageName + "-" + strconv.Itoa(i)
+			exportNPMPackage(chunk, location, name, description, version, author, license, jobs)
+		}(i, packageName, location, description, version, author, license, &chunk, jobs)
 	}
+
+	wg.Wait()
 }
 
-func exportNPMPackage(rows []interface{}, location, packageName, description, version, author, license string) {
+func exportNPMPackage(rows *[]interface{}, location, packageName, description, version, author, license string, jobs chan<- string) {
 	packages := make(map[string]string)
 
 	fmt.Printf("Creating %v\n", packageName)
 
-	for _, row := range rows {
+	for _, row := range *rows {
 		r := row.(Row)
 		packages[r.Id] = "*"
 	}
@@ -134,7 +152,11 @@ func exportNPMPackage(rows []interface{}, location, packageName, description, ve
 		panic(err)
 	}
 
-	cmd := exec.Command("npm", "publish", absPath)
+	publishNPM(absPath)
+
+	return
+
+	/*cmd := exec.Command("npm", "publish", absPath)
 	stdout, err := cmd.Output()
 
 	if err != nil {
@@ -142,6 +164,20 @@ func exportNPMPackage(rows []interface{}, location, packageName, description, ve
 	}
 
 	print(string(stdout))
+	*/
+}
+
+func publishNPM(path string) {
+	cmd := exec.Command("npm", "publish", path)
+	stdout, err := cmd.Output()
+
+	fmt.Println(string(stdout))
+
+	if err != nil {
+		panic(err)
+	}
+
+	return
 }
 
 func slicer(a []Row, b int) [][]interface{} {
