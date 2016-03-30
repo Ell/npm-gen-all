@@ -4,7 +4,7 @@ Why? Well to help protect helpless packages from being unpublished on NPM! Just 
 
 WARNING: I'm bad at go and this was some late night coding :)  
 
-Example output: https://www.npmjs.com/~ell
+Example output: https://www.npmjs.com/~banacek
 
 Before running make sure you have a logged in npm account on your system.  
 
