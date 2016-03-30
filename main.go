@@ -19,6 +19,7 @@ type NPMPackageFile struct {
 	Main         string            `json:"main"`
 	Author       string            `json:"author"`
 	License      string            `json:"license"`
+	Homepage     string            `json:"homepage"`
 	Dependencies map[string]string `json:"dependencies"`
 }
 
@@ -43,7 +44,7 @@ func main() {
 
 	fmt.Println("Downloading NPM package list. This may take a while....")
 
-	createNPMPackages(outputLocation, packageNameRoot, author, "4.2.0", "A package that gets all packages.", "WTFPL")
+	createNPMPackages(outputLocation, packageNameRoot, author, "4.2.1", "A package that gets all packages.", "WTFPL")
 }
 
 func createNPMPackages(location, packageName, author, version, description, license string) {
@@ -96,6 +97,7 @@ func exportNPMPackage(rows []interface{}, location, packageName, description, ve
 	npmPackage.Version = version
 	npmPackage.Author = author
 	npmPackage.License = license
+	npmPackage.Homepage = "http://github.com/ell/npm-gen-all"
 
 	j, err := json.MarshalIndent(npmPackage, "", "  ")
 	if err != nil {
@@ -103,12 +105,14 @@ func exportNPMPackage(rows []interface{}, location, packageName, description, ve
 	}
 
 	rootPath := filepath.Join(location, packageName)
-	os.MkdirAll(rootPath, os.ModePerm)
+	os.MkdirAll(rootPath, 0777)
 
 	path := filepath.Join(rootPath, "package.json")
 	helloPath := filepath.Join(rootPath, "index.js")
+	readMePath := filepath.Join(rootPath, "README.md")
 
 	helloWorld := []byte("console.log('Hello NPM :)')")
+	readme := []byte("Yo, these are some cool packages imo. Lets make sure we have a nice backup it'd be a shame if someone unpublished them.")
 
 	err = ioutil.WriteFile(helloPath, helloWorld, 0644)
 	if err != nil {
@@ -116,6 +120,11 @@ func exportNPMPackage(rows []interface{}, location, packageName, description, ve
 	}
 
 	err = ioutil.WriteFile(path, j, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile(readMePath, readme, 0644)
 	if err != nil {
 		panic(err)
 	}
