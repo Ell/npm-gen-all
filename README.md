@@ -1,3 +1,7 @@
+This application will create a multitude of npm projects that will depend on every npm package published.  
+
+Why? Well to help protect helpless packages from being unpublished on NPM! Just run this simple application to do your part!  
+
 WARNING: I'm bad at go and this was some late night coding :)  
 
 Example output: https://www.npmjs.com/~ell
