@@ -88,11 +88,11 @@ func createNPMPackages(location, packageName, author, version, description, lice
 
 	for i, chunk := range chunks {
 		wg.Add(1)
-		go func(i int, packageName, location, description, version, author, license string, chunk *[]interface{}, jobs chan<- string) {
+		go func(i int, chunk *[]interface{}, jobs chan<- string) {
 			defer wg.Done()
 			name := packageName + "-" + strconv.Itoa(i)
 			exportNPMPackage(chunk, location, name, description, version, author, license, jobs)
-		}(i, packageName, location, description, version, author, license, &chunk, jobs)
+		}(i, &chunk, jobs)
 	}
 
 	wg.Wait()
@@ -155,16 +155,6 @@ func exportNPMPackage(rows *[]interface{}, location, packageName, description, v
 	publishNPM(absPath)
 
 	return
-
-	/*cmd := exec.Command("npm", "publish", absPath)
-	stdout, err := cmd.Output()
-
-	if err != nil {
-		panic(err)
-	}
-
-	print(string(stdout))
-	*/
 }
 
 func publishNPM(path string) {
